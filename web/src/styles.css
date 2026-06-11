@@ -302,6 +302,36 @@ textarea:focus {
   gap: 8px;
 }
 
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actions button {
+  min-width: 92px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #334155;
+  background: #eef3f7;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.actions button.active {
+  color: #ffffff;
+  background: #dc2626;
+}
+
+.actions button:disabled {
+  color: #8492a3;
+  background: #edf1f5;
+}
+
+.player-actions {
+  margin-top: 10px;
+}
+
 .player-layer {
   position: fixed;
   inset: 0;

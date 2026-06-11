@@ -34,6 +34,8 @@ createApp({
       uploadMessage: '',
       loading: false,
       message: '',
+      coverObjectUrls: {},
+      interactionStatuses: {},
       selectedVideo: null,
       playInfo: null,
       hls: null,
@@ -59,6 +61,7 @@ createApp({
   },
   beforeUnmount() {
     this.closePlayer()
+    this.clearCoverObjectUrls()
   },
   methods: {
     async request(path, options = {}) {
@@ -104,6 +107,8 @@ createApp({
     },
     logout() {
       this.closePlayer()
+      this.clearCoverObjectUrls()
+      this.interactionStatuses = {}
       this.token = ''
       this.user = null
       this.videos = []
@@ -128,6 +133,8 @@ createApp({
           path = `/api/videos/search?keyword=${keyword}&pageNo=${pageNo}&pageSize=${this.page.pageSize}`
         }
         const data = await this.request(path)
+        this.clearCoverObjectUrls()
+        this.interactionStatuses = {}
         this.videos = data.records || []
         this.page = {
           pageNo: data.pageNo,
@@ -135,6 +142,10 @@ createApp({
           total: data.total,
           pages: data.pages
         }
+        await Promise.all([
+          this.loadCoverObjectUrls(this.videos),
+          this.loadInteractionStatuses(this.videos)
+        ])
       }
       catch (error) {
         this.message = error.message
@@ -142,6 +153,95 @@ createApp({
       finally {
         this.loading = false
       }
+    },
+    async loadInteractionStatuses(videos) {
+      const entries = await Promise.all(videos
+        .filter((video) => video.playable)
+        .map(async (video) => {
+          try {
+            const status = await this.request(`/api/videos/${video.id}/interaction`)
+            return [video.id, status]
+          }
+          catch {
+            return [video.id, null]
+          }
+        }))
+      this.interactionStatuses = Object.fromEntries(entries.filter(([, status]) => status))
+    },
+    async toggleLike(video) {
+      const status = this.interactionStatuses[video.id]
+      const method = status?.liked ? 'DELETE' : 'POST'
+      try {
+        const nextStatus = await this.request(`/api/videos/${video.id}/like`, { method })
+        this.applyInteractionStatus(video.id, nextStatus)
+      }
+      catch (error) {
+        this.message = error.message
+      }
+    },
+    async toggleCollect(video) {
+      const status = this.interactionStatuses[video.id]
+      const method = status?.collected ? 'DELETE' : 'POST'
+      try {
+        const nextStatus = await this.request(`/api/videos/${video.id}/collect`, { method })
+        this.applyInteractionStatus(video.id, nextStatus)
+      }
+      catch (error) {
+        this.message = error.message
+      }
+    },
+    applyInteractionStatus(videoId, status) {
+      this.interactionStatuses = {
+        ...this.interactionStatuses,
+        [videoId]: status
+      }
+      this.videos = this.videos.map((video) => {
+        if (video.id !== videoId) return video
+        return {
+          ...video,
+          likeCount: status.likeCount,
+          collectCount: status.collectCount,
+          commentCount: status.commentCount
+        }
+      })
+      if (this.selectedVideo?.id === videoId) {
+        this.selectedVideo = {
+          ...this.selectedVideo,
+          likeCount: status.likeCount,
+          collectCount: status.collectCount,
+          commentCount: status.commentCount
+        }
+      }
+    },
+    isLiked(video) {
+      return Boolean(this.interactionStatuses[video.id]?.liked)
+    },
+    isCollected(video) {
+      return Boolean(this.interactionStatuses[video.id]?.collected)
+    },
+    async loadCoverObjectUrls(videos) {
+      const entries = await Promise.all(videos
+        .filter((video) => video.coverUrl)
+        .map(async (video) => {
+          try {
+            const response = await fetch(video.coverUrl, {
+              headers: {
+                Authorization: `Bearer ${this.token}`
+              }
+            })
+            if (!response.ok) return [video.id, null]
+            const blob = await response.blob()
+            return [video.id, URL.createObjectURL(blob)]
+          }
+          catch {
+            return [video.id, null]
+          }
+        }))
+      this.coverObjectUrls = Object.fromEntries(entries.filter(([, url]) => url))
+    },
+    clearCoverObjectUrls() {
+      Object.values(this.coverObjectUrls).forEach((url) => URL.revokeObjectURL(url))
+      this.coverObjectUrls = {}
     },
     async searchVideos() {
       if (!this.keyword.trim()) {
@@ -338,7 +438,7 @@ createApp({
           <div class="video-grid">
             <article v-for="video in videos" :key="video.id" class="video-card">
               <div class="cover" @click="video.playable && openPlayer(video)">
-                <img v-if="video.coverUrl" :src="video.coverUrl" :alt="video.title" />
+                <img v-if="coverObjectUrls[video.id]" :src="coverObjectUrls[video.id]" :alt="video.title" />
                 <div v-else class="cover-fallback">{{ video.status }}</div>
                 <span class="duration">{{ formatDuration(video.duration) }}</span>
               </div>
@@ -349,6 +449,14 @@ createApp({
                   <span>{{ video.status }}</span>
                   <span>{{ video.playCount || 0 }} 播放</span>
                   <span>{{ video.likeCount || 0 }} 赞</span>
+                </div>
+                <div class="actions">
+                  <button :class="{ active: isLiked(video) }" :disabled="!video.playable" @click="toggleLike(video)">
+                    {{ isLiked(video) ? '已赞' : '点赞' }} {{ video.likeCount || 0 }}
+                  </button>
+                  <button :class="{ active: isCollected(video) }" :disabled="!video.playable" @click="toggleCollect(video)">
+                    {{ isCollected(video) ? '已收藏' : '收藏' }} {{ video.collectCount || 0 }}
+                  </button>
                 </div>
               </div>
             </article>
@@ -371,6 +479,14 @@ createApp({
             <div>
               <h2>{{ selectedVideo.title }}</h2>
               <p>{{ danmakuConnected ? '弹幕已连接' : '弹幕未连接' }}</p>
+              <div class="actions player-actions">
+                <button :class="{ active: isLiked(selectedVideo) }" @click="toggleLike(selectedVideo)">
+                  {{ isLiked(selectedVideo) ? '已赞' : '点赞' }} {{ selectedVideo.likeCount || 0 }}
+                </button>
+                <button :class="{ active: isCollected(selectedVideo) }" @click="toggleCollect(selectedVideo)">
+                  {{ isCollected(selectedVideo) ? '已收藏' : '收藏' }} {{ selectedVideo.collectCount || 0 }}
+                </button>
+              </div>
             </div>
             <div class="danmaku-form">
               <input v-model="danmakuText" placeholder="发送弹幕" @keydown.enter="sendDanmaku" />
