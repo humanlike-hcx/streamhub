@@ -1773,3 +1773,76 @@ scripts/verify-search.ps1 Verification
 ```
 
 - 当前本地 Elasticsearch 未启动时，搜索接口成功降级到 MySQL LIKE，并返回已发布视频分页结果。
+
+## 2026-06-11 Vue3 前端试用版
+
+### 本次目标
+
+新增一个轻量前端，让后端功能可以直接在浏览器里试用。
+
+### 技术选型
+
+- Vite
+- Vue3
+- hls.js
+
+hls.js 用于在 Chrome / Edge 中播放后端 HLS 地址。
+
+### 前端目录
+
+```text
+web/
+  index.html
+  package.json
+  vite.config.js
+  src/main.js
+  src/styles.css
+```
+
+### 已覆盖功能
+
+- 登录 / 注册。
+- 视频最新列表。
+- 热门列表。
+- 我的视频。
+- Elasticsearch 搜索接口。
+- 普通视频上传。
+- HLS 播放。
+- Netty WebSocket 弹幕连接。
+- 发送弹幕并在播放画面上显示。
+
+### 本地运行方式
+
+后端：
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+前端：
+
+```powershell
+cd web
+npm install
+npm run dev -- --port 5173
+```
+
+访问：
+
+```text
+http://127.0.0.1:5173
+```
+
+### 代码思想
+
+- Vite 代理 `/api` 到 `http://localhost:8080`，避免额外配置后端 CORS。
+- WebSocket 弹幕直接连接 `ws://localhost:8090/ws/danmaku`。
+- 播放页先调用 `/api/videos/{videoId}/play` 获取 HLS 地址，再交给 hls.js 播放。
+- 弹幕以前端覆盖层渲染，后端只负责广播消息。
+
+### 当前边界
+
+- 当前是试用版前端，不是完整产品 UI。
+- 分片上传暂未做进页面，仍可通过脚本验证。
+- 评论、点赞、收藏暂未做前端入口。
+- 页面路由暂未拆分，当前是单页演示应用。

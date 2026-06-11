@@ -1,0 +1,412 @@
+:root {
+  color: #17202a;
+  background: #eef3f7;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.sidebar {
+  min-height: 100vh;
+  padding: 24px;
+  background: #ffffff;
+  border-right: 1px solid #d9e2ea;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.brand-mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #0f766e;
+  font-weight: 800;
+  font-size: 24px;
+}
+
+.brand h1,
+.brand p,
+.panel h2,
+.video-info h3,
+.player-footer h2 {
+  margin: 0;
+}
+
+.brand h1 {
+  font-size: 22px;
+}
+
+.brand p,
+.hint,
+.user-row span,
+.video-info p,
+.stats,
+.player-footer p,
+.meta-line {
+  color: #607080;
+  font-size: 13px;
+}
+
+.panel {
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #dce5ed;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.panel label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  color: #405060;
+  font-size: 13px;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid #cbd8e3;
+  border-radius: 6px;
+  padding: 10px 11px;
+  color: #17202a;
+  background: #ffffff;
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.segmented,
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.segmented button,
+.tabs button,
+.secondary,
+.pager button {
+  padding: 9px 12px;
+  border-radius: 6px;
+  color: #334155;
+  background: #e7edf3;
+}
+
+.segmented button.active,
+.tabs button.active {
+  color: #ffffff;
+  background: #0f766e;
+}
+
+.primary {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 6px;
+  color: #ffffff;
+  background: #0f766e;
+  font-weight: 700;
+}
+
+.secondary {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #3b82f6;
+  font-weight: 800;
+}
+
+.file-input {
+  padding: 8px;
+  background: #ffffff;
+}
+
+.content {
+  min-width: 0;
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.searchbar {
+  width: min(560px, 100%);
+  display: flex;
+  gap: 8px;
+}
+
+.searchbar button,
+.danmaku-form button {
+  min-width: 76px;
+  border-radius: 6px;
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.alert {
+  padding: 12px 14px;
+  border-radius: 6px;
+  color: #8a3b0a;
+  background: #fff4e5;
+}
+
+.empty-state {
+  min-height: 420px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  border: 1px dashed #bfccd8;
+  border-radius: 8px;
+  background: #f8fbfd;
+}
+
+.empty-state h2 {
+  margin: 0 0 8px;
+}
+
+.meta-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.pager {
+  display: flex;
+  gap: 8px;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.video-card {
+  overflow: hidden;
+  border: 1px solid #dce5ed;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #1f2937;
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-fallback {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #d7dee8;
+  font-weight: 800;
+}
+
+.duration {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.64);
+  font-size: 12px;
+}
+
+.video-info {
+  padding: 13px;
+}
+
+.video-info h3 {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.video-info p {
+  min-height: 36px;
+  margin: 8px 0 12px;
+  line-height: 1.4;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.player-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.player-panel {
+  width: min(1100px, 100%);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.video-stage {
+  position: relative;
+  background: #000000;
+}
+
+.video-stage video {
+  width: 100%;
+  max-height: 68vh;
+  display: block;
+  background: #000000;
+}
+
+.danmaku-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.danmaku-overlay p {
+  position: absolute;
+  right: -20%;
+  min-width: 240px;
+  margin: 0;
+  color: #ffffff;
+  text-shadow: 0 1px 3px #000000;
+  font-weight: 700;
+  animation: fly 8s linear forwards;
+}
+
+@keyframes fly {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-130vw);
+  }
+}
+
+.player-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+}
+
+.danmaku-form {
+  display: flex;
+  width: min(460px, 100%);
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #d9e2ea;
+  }
+
+  .topbar,
+  .player-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tabs,
+  .searchbar,
+  .danmaku-form {
+    width: 100%;
+  }
+}
