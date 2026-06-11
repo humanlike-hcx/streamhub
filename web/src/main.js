@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp } from 'vue/dist/vue.esm-bundler.js'
 import Hls from 'hls.js'
 import './styles.css'
 
