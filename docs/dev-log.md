@@ -1675,3 +1675,101 @@ scripts/verify-multipart-upload.ps1
   - 查询进度返回 `[0, 1]`。
   - 完成上传后创建视频记录。
   - 使用同一个 `fileMd5` 再次初始化，返回 `instantUploaded=true`，说明秒传命中。
+
+## 2026-06-11 Elasticsearch 视频搜索
+
+### 本次目标
+
+新增视频搜索能力，同时保持 MySQL 作为业务主库：
+
+- Elasticsearch 只负责全文检索和相关性排序。
+- MySQL 仍然负责视频详情、状态、播放地址和计数字段。
+- 搜索接口优先查 Elasticsearch，失败时降级到 MySQL LIKE。
+
+### 新增配置
+
+`deploy/docker-compose.yml` 新增 Elasticsearch：
+
+```yaml
+elasticsearch:
+  image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+  environment:
+    discovery.type: single-node
+    xpack.security.enabled: "false"
+```
+
+`application-dev.yml` 新增：
+
+```yaml
+streamhub:
+  search:
+    elasticsearch-endpoint: http://localhost:9200
+    video-index-name: streamhub_videos
+```
+
+### 新增接口
+
+```http
+GET /api/videos/search?keyword={keyword}&pageNo=1&pageSize=10
+```
+
+返回结构仍然是：
+
+```text
+Result<PageResponse<VideoDetailResponse>>
+```
+
+这样前端可以和视频列表、热门榜使用同一套分页模型。
+
+### 索引同步时机
+
+- 应用启动后，尝试把已有 `PUBLISHED` 视频同步到 Elasticsearch。
+- 视频转码成功并发布后，调用 `VideoSearchService#indexPublishedVideo(...)` 写入索引。
+- Elasticsearch 写入失败只记录日志，不影响视频发布成功。
+
+### 搜索流程
+
+```text
+Controller
+  -> VideoSearchService
+  -> ElasticsearchVideoSearchClient
+  -> 得到 videoId 列表
+  -> VideoService 回 MySQL 查询视频详情
+  -> 按 ES 命中顺序返回
+```
+
+### 降级策略
+
+如果 Elasticsearch 不可用：
+
+```text
+VideoSearchService
+  -> catch RuntimeException
+  -> fallback to VideoService#searchPublishedFromDatabase(...)
+```
+
+也就是退回：
+
+```sql
+title LIKE keyword OR description LIKE keyword
+```
+
+这样搜索引擎挂掉时，搜索接口仍然可用，只是相关性排序和全文检索能力下降。
+
+### 代码思想
+
+- 不把 Elasticsearch 当主库，避免搜索索引和业务事实强绑定。
+- 搜索索引只保存可检索字段，如 `videoId`、`title`、`description`、`status`、`createdAt`。
+- 搜索结果只信任 ES 的命中顺序，不直接信任 ES 的完整业务数据。
+- 最终返回仍从 MySQL 组装 `VideoDetailResponse`。
+
+### 本次验证
+
+- 已执行 `.\mvnw.cmd test`，Spring Boot 上下文启动通过。
+- 已执行：
+
+```powershell
+scripts/verify-search.ps1 Verification
+```
+
+- 当前本地 Elasticsearch 未启动时，搜索接口成功降级到 MySQL LIKE，并返回已发布视频分页结果。

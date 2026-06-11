@@ -16,6 +16,7 @@ import com.hcx.streamhub.transcode.dto.TranscodeTaskMessage;
 import com.hcx.streamhub.transcode.entity.TranscodeTask;
 import com.hcx.streamhub.transcode.enums.TranscodeTaskStatus;
 import com.hcx.streamhub.transcode.mq.TranscodeMessagePublisher;
+import com.hcx.streamhub.search.service.VideoSearchService;
 import com.hcx.streamhub.upload.service.MinioStorageService;
 import com.hcx.streamhub.video.entity.Video;
 import com.hcx.streamhub.video.service.VideoService;
@@ -31,15 +32,17 @@ public class VideoTranscodeService {
 	private final MinioStorageService minioStorageService;
 	private final TranscodeProperties transcodeProperties;
 	private final TranscodeMessagePublisher transcodeMessagePublisher;
+	private final VideoSearchService videoSearchService;
 
 	public VideoTranscodeService(TranscodeTaskService transcodeTaskService, VideoService videoService,
 			MinioStorageService minioStorageService, TranscodeProperties transcodeProperties,
-			TranscodeMessagePublisher transcodeMessagePublisher) {
+			TranscodeMessagePublisher transcodeMessagePublisher, VideoSearchService videoSearchService) {
 		this.transcodeTaskService = transcodeTaskService;
 		this.videoService = videoService;
 		this.minioStorageService = minioStorageService;
 		this.transcodeProperties = transcodeProperties;
 		this.transcodeMessagePublisher = transcodeMessagePublisher;
+		this.videoSearchService = videoSearchService;
 	}
 
 	public void transcode(TranscodeTaskMessage message) {
@@ -68,6 +71,7 @@ public class VideoTranscodeService {
 			String coverObjectKey = minioStorageService.uploadCover(video.getId(), coverFile);
 			videoService.markPublished(video.getId(), hlsMasterObjectKey,
 					metadata.durationSeconds(), metadata.width(), metadata.height(), coverObjectKey);
+			videoSearchService.indexPublishedVideo(videoService.getById(video.getId()));
 			transcodeTaskService.markSuccess(task.getId());
 			log.info("Transcode task completed, taskId={}, videoId={}", task.getId(), video.getId());
 		}

@@ -39,3 +39,6 @@ streamhub:
     netty-port: 8090
     path: /ws/danmaku
     heartbeat-timeout-seconds: 60
+  search:
+    elasticsearch-endpoint: http://localhost:9200
+    video-index-name: streamhub_videos

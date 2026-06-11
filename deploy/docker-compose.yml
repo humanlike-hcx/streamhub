@@ -53,8 +53,22 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: streamhub-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
 volumes:
   mysql_data:
   redis_data:
   rabbitmq_data:
   minio_data:
+  elasticsearch_data:

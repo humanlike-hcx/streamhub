@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.hcx.streamhub.common.BusinessException;
 import com.hcx.streamhub.common.ErrorCode;
@@ -124,6 +125,42 @@ public class VideoService {
 				.orderByDesc(Video::getCommentCount)
 				.orderByDesc(Video::getCreatedAt);
 		return PageResponse.from(videoMapper.selectPage(page, wrapper), VideoDetailResponse::from);
+	}
+
+	public PageResponse<VideoDetailResponse> listPublishedByIdsInOrder(List<Long> videoIds, PageRequest request,
+			long total) {
+		if (videoIds.isEmpty()) {
+			return new PageResponse<>(List.of(), total, request.getPageNo(), request.getPageSize(),
+					(total + request.getPageSize() - 1) / request.getPageSize());
+		}
+		Map<Long, Video> videoMap = videoMapper.selectBatchIds(videoIds).stream()
+				.filter(video -> VideoStatus.PUBLISHED.name().equals(video.getStatus()))
+				.collect(Collectors.toMap(Video::getId, Function.identity()));
+		List<VideoDetailResponse> records = videoIds.stream()
+				.map(videoMap::get)
+				.filter(java.util.Objects::nonNull)
+				.map(VideoDetailResponse::from)
+				.toList();
+		long pages = (total + request.getPageSize() - 1) / request.getPageSize();
+		return new PageResponse<>(records, total, request.getPageNo(), request.getPageSize(), pages);
+	}
+
+	public PageResponse<VideoDetailResponse> searchPublishedFromDatabase(String keyword, PageRequest request) {
+		Page<Video> page = new Page<>(request.getPageNo(), request.getPageSize());
+		LambdaQueryWrapper<Video> wrapper = new LambdaQueryWrapper<Video>()
+				.eq(Video::getStatus, VideoStatus.PUBLISHED.name())
+				.and(StringUtils.hasText(keyword), condition -> condition
+						.like(Video::getTitle, keyword)
+						.or()
+						.like(Video::getDescription, keyword))
+				.orderByDesc(Video::getCreatedAt);
+		return PageResponse.from(videoMapper.selectPage(page, wrapper), VideoDetailResponse::from);
+	}
+
+	public List<Video> listAllPublishedForIndex() {
+		return videoMapper.selectList(new LambdaQueryWrapper<Video>()
+				.eq(Video::getStatus, VideoStatus.PUBLISHED.name())
+				.orderByAsc(Video::getId));
 	}
 
 	@Transactional

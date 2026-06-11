@@ -19,6 +19,7 @@ import com.hcx.streamhub.auth.security.AuthenticatedUser;
 import com.hcx.streamhub.common.PageRequest;
 import com.hcx.streamhub.common.PageResponse;
 import com.hcx.streamhub.common.Result;
+import com.hcx.streamhub.search.service.VideoSearchService;
 import com.hcx.streamhub.upload.service.VideoUploadService;
 import com.hcx.streamhub.upload.dto.ObjectStream;
 import com.hcx.streamhub.video.dto.VideoDetailResponse;
@@ -40,13 +41,15 @@ public class VideoController {
 	private final VideoPlaybackService videoPlaybackService;
 	private final VideoService videoService;
 	private final VideoViewService videoViewService;
+	private final VideoSearchService videoSearchService;
 
 	public VideoController(VideoUploadService videoUploadService, VideoPlaybackService videoPlaybackService,
-			VideoService videoService, VideoViewService videoViewService) {
+			VideoService videoService, VideoViewService videoViewService, VideoSearchService videoSearchService) {
 		this.videoUploadService = videoUploadService;
 		this.videoPlaybackService = videoPlaybackService;
 		this.videoService = videoService;
 		this.videoViewService = videoViewService;
+		this.videoSearchService = videoSearchService;
 	}
 
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -73,6 +76,13 @@ public class VideoController {
 	@GetMapping("/hot")
 	public Result<PageResponse<VideoDetailResponse>> hot(@Valid PageRequest request) {
 		return Result.success(videoViewService.listHot(request));
+	}
+
+	@GetMapping("/search")
+	public Result<PageResponse<VideoDetailResponse>> search(
+			@NotBlank @Length(max = 64) @RequestParam String keyword,
+			@Valid PageRequest request) {
+		return Result.success(videoSearchService.search(keyword, request));
 	}
 
 	@GetMapping("/{videoId}")
