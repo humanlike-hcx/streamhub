@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3307/streamhub?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: streamhub
+    password: streamhub123
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 520MB
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: streamhub
+  secret-key: streamhub123
+  bucket-name: streamhub-videos
+
+streamhub:
+  jwt:
+    secret: streamhub-dev-secret-key-at-least-32-bytes-long
+    expiration: 86400000
+    issuer: streamhub
+  transcode:
+    ffmpeg-path: C:/Users/Probscray/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe
+    ffprobe-path: C:/Users/Probscray/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffprobe.exe
+    work-dir: target/transcode
+  rocketmq:
+    name-server: localhost:9876
+    producer-group: streamhub-transcode-producer
+    consumer-group: streamhub-transcode-consumer
+    topic: streamhub-transcode-task
+    tag: TRANSCODE
+    consume-thread-min: 1
+    consume-thread-max: 2
+  danmaku:
+    netty-port: 8090
+    path: /ws/danmaku
+    heartbeat-timeout-seconds: 60
+    rate-limit-window-seconds: 5
+    rate-limit-max-messages: 3
+  search:
+    elasticsearch-endpoint: http://localhost:9200
+    video-index-name: streamhub_videos
