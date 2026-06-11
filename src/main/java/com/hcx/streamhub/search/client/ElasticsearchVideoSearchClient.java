@@ -74,6 +74,10 @@ public class ElasticsearchVideoSearchClient {
 		}
 	}
 
+	public void deleteVideo(Long videoId) {
+		sendWithoutBody("DELETE", "/" + properties.getVideoIndexName() + "/_doc/" + videoId);
+	}
+
 	public VideoSearchResult search(String keyword, long from, long size) {
 		ensureVideoIndex();
 		String escapedKeyword;
@@ -152,6 +156,26 @@ public class ElasticsearchVideoSearchClient {
 						.formatted(response.statusCode(), response.body()));
 			}
 			return response.body();
+		}
+		catch (IOException | InterruptedException exception) {
+			if (exception instanceof InterruptedException) {
+				Thread.currentThread().interrupt();
+			}
+			throw new IllegalStateException("failed to request elasticsearch", exception);
+		}
+	}
+
+	private void sendWithoutBody(String method, String path) {
+		HttpRequest request = HttpRequest.newBuilder(uri(path))
+				.timeout(Duration.ofSeconds(5))
+				.method(method, HttpRequest.BodyPublishers.noBody())
+				.build();
+		try {
+			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+			if (response.statusCode() < 200 || response.statusCode() >= 300) {
+				throw new IllegalStateException("elasticsearch request failed, status=%d, body=%s"
+						.formatted(response.statusCode(), response.body()));
+			}
 		}
 		catch (IOException | InterruptedException exception) {
 			if (exception instanceof InterruptedException) {

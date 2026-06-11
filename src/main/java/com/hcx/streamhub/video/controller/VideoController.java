@@ -5,10 +5,13 @@ import org.springframework.http.ResponseEntity;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -25,6 +28,8 @@ import com.hcx.streamhub.upload.dto.ObjectStream;
 import com.hcx.streamhub.video.dto.VideoDetailResponse;
 import com.hcx.streamhub.video.dto.VideoPlayResponse;
 import com.hcx.streamhub.video.dto.VideoResponse;
+import com.hcx.streamhub.video.dto.UpdateVideoRequest;
+import com.hcx.streamhub.video.service.VideoManagementService;
 import com.hcx.streamhub.video.service.VideoPlaybackService;
 import com.hcx.streamhub.video.service.VideoService;
 import com.hcx.streamhub.video.service.VideoViewService;
@@ -42,14 +47,17 @@ public class VideoController {
 	private final VideoService videoService;
 	private final VideoViewService videoViewService;
 	private final VideoSearchService videoSearchService;
+	private final VideoManagementService videoManagementService;
 
 	public VideoController(VideoUploadService videoUploadService, VideoPlaybackService videoPlaybackService,
-			VideoService videoService, VideoViewService videoViewService, VideoSearchService videoSearchService) {
+			VideoService videoService, VideoViewService videoViewService, VideoSearchService videoSearchService,
+			VideoManagementService videoManagementService) {
 		this.videoUploadService = videoUploadService;
 		this.videoPlaybackService = videoPlaybackService;
 		this.videoService = videoService;
 		this.videoViewService = videoViewService;
 		this.videoSearchService = videoSearchService;
+		this.videoManagementService = videoManagementService;
 	}
 
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -88,6 +96,22 @@ public class VideoController {
 	@GetMapping("/{videoId}")
 	public Result<VideoDetailResponse> detail(@PathVariable Long videoId) {
 		return Result.success(videoService.toDetailResponse(videoService.getById(videoId)));
+	}
+
+	@PutMapping("/{videoId}")
+	public Result<VideoDetailResponse> update(
+			@AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+			@PathVariable Long videoId,
+			@Valid @RequestBody UpdateVideoRequest request) {
+		return Result.success(videoManagementService.update(authenticatedUser.id(), videoId, request));
+	}
+
+	@DeleteMapping("/{videoId}")
+	public Result<Void> delete(
+			@AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+			@PathVariable Long videoId) {
+		videoManagementService.delete(authenticatedUser.id(), videoId);
+		return Result.success();
 	}
 
 	@GetMapping("/{videoId}/play")

@@ -76,6 +76,11 @@ public class VideoViewService {
 		refreshHotScore(videoId);
 	}
 
+	public void removeVideo(Long videoId) {
+		stringRedisTemplate.opsForZSet().remove(HOT_VIDEO_KEY, videoId.toString());
+		stringRedisTemplate.opsForHash().delete(PLAY_DELTA_KEY, videoId.toString());
+	}
+
 	@Scheduled(fixedDelay = 30000)
 	public void flushPlayCountToDatabase() {
 		Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(PLAY_DELTA_KEY);

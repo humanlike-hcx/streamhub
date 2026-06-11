@@ -52,6 +52,15 @@ public class VideoSearchService {
 		}
 	}
 
+	public void deleteVideo(Long videoId) {
+		try {
+			elasticsearchVideoSearchClient.deleteVideo(videoId);
+		}
+		catch (RuntimeException exception) {
+			log.warn("Failed to delete video search index, videoId={}, error={}", videoId, exception.getMessage());
+		}
+	}
+
 	@EventListener(ApplicationReadyEvent.class)
 	public void rebuildPublishedVideoIndexOnStartup() {
 		try {

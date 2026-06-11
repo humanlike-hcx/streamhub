@@ -50,4 +50,10 @@ public class VideoCommentService {
 		videoViewService.increaseCommentScore(videoId);
 		return VideoCommentResponse.from(comment);
 	}
+
+	@Transactional
+	public void deleteByVideoId(Long videoId) {
+		videoCommentMapper.delete(new LambdaQueryWrapper<VideoComment>()
+				.eq(VideoComment::getVideoId, videoId));
+	}
 }

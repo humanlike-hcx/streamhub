@@ -2,6 +2,7 @@ package com.hcx.streamhub.transcode.service;
 
 import java.time.LocalDateTime;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 
 import org.springframework.stereotype.Service;
@@ -88,5 +89,11 @@ public class TranscodeTaskService {
 	}
 
 	public record TranscodeFailureResult(TranscodeTask task, boolean shouldRetry) {
+	}
+
+	@Transactional
+	public void deleteByVideoId(Long videoId) {
+		transcodeTaskMapper.delete(new LambdaQueryWrapper<TranscodeTask>()
+				.eq(TranscodeTask::getVideoId, videoId));
 	}
 }

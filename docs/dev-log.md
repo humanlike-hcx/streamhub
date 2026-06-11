@@ -1846,3 +1846,64 @@ http://127.0.0.1:5173
 - 分片上传暂未做进页面，仍可通过脚本验证。
 - 评论、点赞、收藏暂未做前端入口。
 - 页面路由暂未拆分，当前是单页演示应用。
+
+## 2026-06-11 视频管理：改名和删除
+
+### 本次目标
+
+补齐视频资源生命周期管理：
+
+- 作者可以修改视频标题和简介。
+- 作者可以删除自己的视频。
+- 删除后视频不再出现在列表、搜索和热门榜中。
+- 删除时尽量清理 MinIO、Redis、Elasticsearch 和互动数据。
+
+### 新增接口
+
+```http
+PUT /api/videos/{videoId}
+```
+
+请求体：
+
+```json
+{
+  "title": "新的标题",
+  "description": "新的简介"
+}
+```
+
+```http
+DELETE /api/videos/{videoId}
+```
+
+只有视频作者可以操作。
+
+### 删除清理范围
+
+删除视频时：
+
+- `videos` 走 MyBatis-Plus 逻辑删除。
+- 删除关联 `transcode_tasks`，避免已删除视频继续被旧 MQ 消息转码。
+- 清理 `video_likes`。
+- 清理 `video_collects`。
+- 逻辑删除 `video_comments`。
+- 从 Redis 热门榜移除。
+- 删除 Redis 播放量增量。
+- 删除 Elasticsearch 索引文档。
+- 清理 MinIO 封面文件。
+- 清理 MinIO HLS 目录。
+- 原始视频文件只有在没有其他视频引用同一个 `original_object_key` 时才删除，避免秒传复用场景误删共享文件。
+
+### 代码思想
+
+- `VideoService` 只负责视频表自身操作，例如校验归属、更新字段和软删除。
+- `VideoManagementService` 负责跨模块编排，统一处理 MinIO、Redis、ES、互动和评论清理。
+- MinIO 删除采用 best-effort 策略，对象存储清理失败不反向阻塞用户侧删除结果。
+- 修改已发布视频的标题/简介后，会尝试重新写 Elasticsearch 索引，保证搜索结果尽量及时更新。
+
+### 前端变化
+
+- 视频卡片新增“编辑”和“删除”按钮。
+- 编辑支持修改标题和简介。
+- 删除成功后会从当前列表中移除该视频，并释放封面 `blob:` URL。

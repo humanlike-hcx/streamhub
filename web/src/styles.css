@@ -328,6 +328,25 @@ textarea:focus {
   background: #edf1f5;
 }
 
+.actions button.danger {
+  color: #ffffff;
+  background: #991b1b;
+}
+
+.manage-actions {
+  margin-top: 8px;
+}
+
+.manage-actions button {
+  min-width: 76px;
+}
+
+.inline-input,
+.inline-textarea {
+  margin-bottom: 8px;
+  padding: 8px 9px;
+}
+
 .player-actions {
   margin-top: 10px;
 }

@@ -32,6 +32,11 @@ createApp({
       },
       uploadBusy: false,
       uploadMessage: '',
+      editingVideoId: null,
+      editForm: {
+        title: '',
+        description: ''
+      },
       loading: false,
       message: '',
       coverObjectUrls: {},
@@ -218,6 +223,56 @@ createApp({
     },
     isCollected(video) {
       return Boolean(this.interactionStatuses[video.id]?.collected)
+    },
+    startEdit(video) {
+      this.editingVideoId = video.id
+      this.editForm = {
+        title: video.title,
+        description: video.description || ''
+      }
+    },
+    cancelEdit() {
+      this.editingVideoId = null
+      this.editForm = { title: '', description: '' }
+    },
+    async saveEdit(video) {
+      try {
+        const updated = await this.request(`/api/videos/${video.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.editForm)
+        })
+        this.videos = this.videos.map((item) => item.id === video.id ? { ...item, ...updated } : item)
+        if (this.selectedVideo?.id === video.id) {
+          this.selectedVideo = { ...this.selectedVideo, ...updated }
+        }
+        this.cancelEdit()
+      }
+      catch (error) {
+        this.message = error.message
+      }
+    },
+    async deleteVideo(video) {
+      if (!window.confirm(`确认删除「${video.title}」吗？删除后列表、播放和搜索都不可见。`)) return
+      try {
+        await this.request(`/api/videos/${video.id}`, { method: 'DELETE' })
+        if (this.selectedVideo?.id === video.id) {
+          this.closePlayer()
+        }
+        this.videos = this.videos.filter((item) => item.id !== video.id)
+        const nextStatuses = { ...this.interactionStatuses }
+        delete nextStatuses[video.id]
+        this.interactionStatuses = nextStatuses
+        if (this.coverObjectUrls[video.id]) {
+          URL.revokeObjectURL(this.coverObjectUrls[video.id])
+          const nextCovers = { ...this.coverObjectUrls }
+          delete nextCovers[video.id]
+          this.coverObjectUrls = nextCovers
+        }
+      }
+      catch (error) {
+        this.message = error.message
+      }
     },
     async loadCoverObjectUrls(videos) {
       const entries = await Promise.all(videos
@@ -443,8 +498,18 @@ createApp({
                 <span class="duration">{{ formatDuration(video.duration) }}</span>
               </div>
               <div class="video-info">
-                <h3>{{ video.title }}</h3>
-                <p>{{ video.description || '暂无简介' }}</p>
+                <template v-if="editingVideoId === video.id">
+                  <input v-model="editForm.title" class="inline-input" />
+                  <textarea v-model="editForm.description" class="inline-textarea" rows="2" />
+                  <div class="actions">
+                    <button @click="saveEdit(video)">保存</button>
+                    <button @click="cancelEdit">取消</button>
+                  </div>
+                </template>
+                <template v-else>
+                  <h3>{{ video.title }}</h3>
+                  <p>{{ video.description || '暂无简介' }}</p>
+                </template>
                 <div class="stats">
                   <span>{{ video.status }}</span>
                   <span>{{ video.playCount || 0 }} 播放</span>
@@ -457,6 +522,10 @@ createApp({
                   <button :class="{ active: isCollected(video) }" :disabled="!video.playable" @click="toggleCollect(video)">
                     {{ isCollected(video) ? '已收藏' : '收藏' }} {{ video.collectCount || 0 }}
                   </button>
+                </div>
+                <div class="actions manage-actions">
+                  <button @click="startEdit(video)">编辑</button>
+                  <button class="danger" @click="deleteVideo(video)">删除</button>
                 </div>
               </div>
             </article>

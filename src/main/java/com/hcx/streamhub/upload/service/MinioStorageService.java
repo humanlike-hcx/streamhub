@@ -22,10 +22,13 @@ import com.hcx.streamhub.upload.dto.StoredObject;
 
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
+import io.minio.ListObjectsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.Result;
+import io.minio.messages.Item;
 
 @Service
 public class MinioStorageService {
@@ -139,6 +142,40 @@ public class MinioStorageService {
 			catch (Exception ignored) {
 				// Temporary chunk cleanup is best-effort. Failed cleanup should not break upload completion.
 			}
+		}
+	}
+
+	public void deleteObjectQuietly(String objectKey) {
+		if (!StringUtils.hasText(objectKey)) {
+			return;
+		}
+		try {
+			minioClient.removeObject(RemoveObjectArgs.builder()
+					.bucket(minioProperties.getBucketName())
+					.object(objectKey)
+					.build());
+		}
+		catch (Exception ignored) {
+			// Object cleanup is best-effort. Database visibility is controlled by soft delete.
+		}
+	}
+
+	public void deletePrefixQuietly(String prefix) {
+		if (!StringUtils.hasText(prefix)) {
+			return;
+		}
+		try {
+			Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+					.bucket(minioProperties.getBucketName())
+					.prefix(prefix.endsWith("/") ? prefix : prefix + "/")
+					.recursive(true)
+					.build());
+			for (Result<Item> result : results) {
+				deleteObjectQuietly(result.get().objectName());
+			}
+		}
+		catch (Exception ignored) {
+			// Prefix cleanup is best-effort. Leftover objects can be cleaned by a later maintenance job.
 		}
 	}
 

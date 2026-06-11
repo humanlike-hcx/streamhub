@@ -106,6 +106,14 @@ public class VideoInteractionService {
 				video.getCommentCount());
 	}
 
+	@Transactional
+	public void deleteByVideoId(Long videoId) {
+		videoLikeMapper.delete(new LambdaQueryWrapper<VideoLike>()
+				.eq(VideoLike::getVideoId, videoId));
+		videoCollectMapper.delete(new LambdaQueryWrapper<VideoCollect>()
+				.eq(VideoCollect::getVideoId, videoId));
+	}
+
 	private boolean liked(Long videoId, Long userId) {
 		return videoLikeMapper.selectCount(new LambdaQueryWrapper<VideoLike>()
 				.eq(VideoLike::getVideoId, videoId)

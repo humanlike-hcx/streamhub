@@ -75,6 +75,14 @@ public class VideoService {
 		return video;
 	}
 
+	public Video getOwnedVideo(Long userId, Long videoId) {
+		Video video = getById(videoId);
+		if (!video.getUserId().equals(userId)) {
+			throw new BusinessException(ErrorCode.FORBIDDEN, "video does not belong to current user");
+		}
+		return video;
+	}
+
 	public PageResponse<VideoDetailResponse> listPublished(PageRequest request) {
 		Page<Video> page = new Page<>(request.getPageNo(), request.getPageSize());
 		LambdaQueryWrapper<Video> wrapper = new LambdaQueryWrapper<Video>()
@@ -161,6 +169,31 @@ public class VideoService {
 		return videoMapper.selectList(new LambdaQueryWrapper<Video>()
 				.eq(Video::getStatus, VideoStatus.PUBLISHED.name())
 				.orderByAsc(Video::getId));
+	}
+
+	@Transactional
+	public Video updateOwnedVideo(Long userId, Long videoId, String title, String description) {
+		Video video = getOwnedVideo(userId, videoId);
+		video.setTitle(title);
+		video.setDescription(description);
+		videoMapper.updateById(video);
+		return getById(videoId);
+	}
+
+	@Transactional
+	public Video softDeleteOwnedVideo(Long userId, Long videoId) {
+		Video video = getOwnedVideo(userId, videoId);
+		videoMapper.deleteById(videoId);
+		return video;
+	}
+
+	public boolean hasOtherVideoUsingOriginalObject(Long videoId, String originalObjectKey) {
+		if (!StringUtils.hasText(originalObjectKey)) {
+			return false;
+		}
+		return videoMapper.selectCount(new LambdaQueryWrapper<Video>()
+				.ne(Video::getId, videoId)
+				.eq(Video::getOriginalObjectKey, originalObjectKey)) > 0;
 	}
 
 	@Transactional
