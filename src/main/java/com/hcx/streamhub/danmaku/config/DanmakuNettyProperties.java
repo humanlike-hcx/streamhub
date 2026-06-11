@@ -17,4 +17,8 @@ public class DanmakuNettyProperties {
 	private String path = "/ws/danmaku";
 
 	private int heartbeatTimeoutSeconds = 60;
+
+	private int rateLimitWindowSeconds = 5;
+
+	private int rateLimitMaxMessages = 3;
 }

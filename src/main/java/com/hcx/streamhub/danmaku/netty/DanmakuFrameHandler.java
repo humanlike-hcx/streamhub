@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hcx.streamhub.danmaku.room.DanmakuRoomManager;
+import com.hcx.streamhub.danmaku.service.DanmakuRateLimiter;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler;
@@ -24,10 +25,12 @@ import io.netty.handler.timeout.IdleStateEvent;
 public class DanmakuFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
 	private final DanmakuRoomManager roomManager;
+	private final DanmakuRateLimiter rateLimiter;
 	private final ObjectMapper objectMapper;
 
-	public DanmakuFrameHandler(DanmakuRoomManager roomManager, ObjectMapper objectMapper) {
+	public DanmakuFrameHandler(DanmakuRoomManager roomManager, DanmakuRateLimiter rateLimiter, ObjectMapper objectMapper) {
 		this.roomManager = roomManager;
+		this.rateLimiter = rateLimiter;
 		this.objectMapper = objectMapper;
 	}
 
@@ -53,6 +56,13 @@ public class DanmakuFrameHandler extends SimpleChannelInboundHandler<WebSocketFr
 		}
 		String content = extractContent(text);
 		if (content.isBlank()) {
+			return;
+		}
+		if (!rateLimiter.allow(videoId, userId)) {
+			context.writeAndFlush(new TextWebSocketFrame(objectMapper.writeValueAsString(Map.of(
+					"type", "ERROR",
+					"code", "DANMAKU_RATE_LIMITED",
+					"message", "发送太频繁，请稍后再试"))));
 			return;
 		}
 		String payload = objectMapper.writeValueAsString(Map.of(
