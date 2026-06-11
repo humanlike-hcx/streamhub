@@ -2015,3 +2015,64 @@ return current
   - 更适合稳定下游处理速度。
 
 弹幕发送限流当前选择固定窗口，是因为需求更像“限制单用户刷屏”，不是要做全局流量整形。
+
+## 2026-06-11 转码队列迁移到 RocketMQ
+
+### 本次目标
+
+将视频转码任务队列从 RabbitMQ 切换为 RocketMQ，保留现有上传接口、播放接口、转码任务表、原子抢占、消费幂等和失败重试逻辑。
+
+### 代码变化
+
+- 移除 `spring-boot-starter-amqp` 依赖，新增 `rocketmq-client`。
+- 删除 RabbitMQ 的交换机、队列、绑定和 `@RabbitListener` 配置。
+- 新增 `TranscodeRocketMqProperties`，统一维护：
+  - `nameServer`
+  - `producerGroup`
+  - `consumerGroup`
+  - `topic`
+  - `tag`
+- `TranscodeMessagePublisher` 改为使用 `DefaultMQProducer` 发送消息。
+- `TranscodeTaskConsumer` 改为使用 `DefaultMQPushConsumer` 订阅转码 topic。
+- Docker Compose 移除 RabbitMQ，新增 RocketMQ NameServer 和 Broker。
+
+### 转码流程
+
+当前链路变为：
+
+```text
+上传视频
+-> 保存原始文件到 MinIO
+-> 写入 videos 和 transcode_tasks
+-> 事务提交后发送 RocketMQ 消息
+-> Consumer 收到消息
+-> tryStartTask(taskId) 原子抢占 WAITING 任务
+-> FFmpeg 转 HLS + 生成封面
+-> 上传 HLS 和 cover 到 MinIO
+-> 更新视频为 PUBLISHED
+-> 更新转码任务为 SUCCESS
+```
+
+### 可靠性说明
+
+- RocketMQ 仍然可能重复投递消息，所以不能只依赖 MQ 保证“只消费一次”。
+- 当前仍然依赖 `transcode_tasks` 的条件更新实现原子抢占：
+
+```sql
+UPDATE transcode_tasks
+SET status = 'PROCESSING'
+WHERE id = ? AND status = 'WAITING'
+```
+
+- 如果重复消息到达：
+  - `SUCCESS`：直接跳过。
+  - `PROCESSING`：说明已有消费者正在处理，直接跳过。
+  - `FAILED`：暂时不处理。
+- FFmpeg 失败后先更新数据库重试状态，再发送 RocketMQ 延迟消息，避免无限立即重试。
+
+### 面试讲解点
+
+- RabbitMQ 更偏通用消息队列，RocketMQ 在订单、任务、延迟消息、消费组和高吞吐异步场景里更常见。
+- 本项目的转码任务属于耗时异步任务，失败后需要延迟重试，RocketMQ 的延迟消息模型更贴合。
+- MQ 只负责通知，真正的任务状态和幂等控制在 MySQL 的 `transcode_tasks` 表。
+- Consumer 代码不直接相信消息内容，必须先查任务并通过 `tryStartTask` 抢占成功后才执行 FFmpeg。

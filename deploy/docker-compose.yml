@@ -26,18 +26,32 @@ services:
     volumes:
       - redis_data:/data
 
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: streamhub-rabbitmq
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.0
+    container_name: streamhub-rocketmq-namesrv
     restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: streamhub
-      RABBITMQ_DEFAULT_PASS: streamhub123
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "9876:9876"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - rocketmq_namesrv_logs:/home/rocketmq/logs
+    command: sh mqnamesrv
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.0
+    container_name: streamhub-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    volumes:
+      - rocketmq_broker_logs:/home/rocketmq/logs
+      - rocketmq_broker_store:/home/rocketmq/store
+      - ./rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf
 
   minio:
     image: minio/minio:latest
@@ -69,6 +83,8 @@ services:
 volumes:
   mysql_data:
   redis_data:
-  rabbitmq_data:
+  rocketmq_namesrv_logs:
+  rocketmq_broker_logs:
+  rocketmq_broker_store:
   minio_data:
   elasticsearch_data:

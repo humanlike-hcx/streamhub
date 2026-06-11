@@ -9,12 +9,6 @@ spring:
       host: localhost
       port: 6379
       database: 0
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: streamhub
-    password: streamhub123
-    virtual-host: /
   servlet:
     multipart:
       max-file-size: 500MB
@@ -35,6 +29,14 @@ streamhub:
     ffmpeg-path: C:/Users/Probscray/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe
     ffprobe-path: C:/Users/Probscray/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffprobe.exe
     work-dir: target/transcode
+  rocketmq:
+    name-server: localhost:9876
+    producer-group: streamhub-transcode-producer
+    consumer-group: streamhub-transcode-consumer
+    topic: streamhub-transcode-task
+    tag: TRANSCODE
+    consume-thread-min: 1
+    consume-thread-max: 2
   danmaku:
     netty-port: 8090
     path: /ws/danmaku

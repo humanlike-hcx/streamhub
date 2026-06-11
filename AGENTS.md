@@ -10,7 +10,7 @@
 - MyBatis-Plus
 - MySQL
 - Redis
-- RabbitMQ
+- RocketMQ
 - MinIO
 - FFmpeg
 - OpenSearch，后期加入
@@ -21,7 +21,7 @@
 
 实现一个视频网站后端系统，核心链路为：
 
-用户上传视频 -> 保存原始文件到 MinIO -> 创建转码任务 -> RabbitMQ 异步消费 -> FFmpeg 转 HLS -> 上传 m3u8 和 ts 切片到 MinIO -> 更新视频状态 -> 前端播放。
+用户上传视频 -> 保存原始文件到 MinIO -> 创建转码任务 -> RocketMQ 异步消费 -> FFmpeg 转 HLS -> 上传 m3u8 和 ts 切片到 MinIO -> 更新视频状态 -> 前端播放。
 
 ## 代码规范
 
@@ -60,7 +60,7 @@ com.hcx.streamhub
 2. 用户注册登录
 3. 视频元信息管理
 4. MinIO 普通上传
-5. RabbitMQ 异步转码
+5. RocketMQ 异步转码
 6. FFmpeg 生成 HLS
 7. 点赞、收藏、评论
 8. Redis 热门榜

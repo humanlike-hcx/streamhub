@@ -83,9 +83,9 @@ public class VideoTranscodeService {
 			if (failureResult.shouldRetry()) {
 				log.warn("Transcode task failed and will retry, taskId={}, videoId={}, retryCount={}, maxRetryCount={}, error={}",
 						failedTask.getId(), message.videoId(), failedTask.getRetryCount(), failedTask.getMaxRetryCount(), messageText);
-				transcodeMessagePublisher.publish(message);
-				log.info("Republished transcode task after failure state update, taskId={}, videoId={}",
-						failedTask.getId(), message.videoId());
+				transcodeMessagePublisher.publishDelayed(message, failedTask.getRetryCount());
+				log.info("Republished RocketMQ transcode task after failure state update, taskId={}, videoId={}, retryCount={}",
+						failedTask.getId(), message.videoId(), failedTask.getRetryCount());
 			}
 			else {
 				videoService.markFailed(message.videoId());

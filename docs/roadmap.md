@@ -10,7 +10,7 @@
 - 用户注册登录
 - JWT + Spring Security 无状态认证
 - MinIO 原始视频对象存储
-- RabbitMQ 异步转码消息
+- RocketMQ 异步转码消息
 - FFmpeg 生成 HLS
 - HLS 后端代理播放
 - 视频详情接口
@@ -19,7 +19,7 @@
 
 当前架构约束：
 
-- 保留 RabbitMQ，不切换 RocketMQ。
+- 转码链路使用 RocketMQ，不再使用 RabbitMQ。
 - 不使用 Canal。
 - 弹幕模块使用 Netty WebSocket。
 - Controller 只做参数接收、参数校验和结果返回。
@@ -35,7 +35,7 @@
 
 ### 涉及技术
 
-- RabbitMQ
+- RocketMQ
 - MySQL 条件更新
 - MyBatis-Plus 自定义 SQL
 - Spring 事务
@@ -57,7 +57,7 @@
 - 增加 PROCESSING 超时恢复：
   - 新增 `locked_by`、`locked_at`。
   - 定时扫描长时间卡在 `PROCESSING` 的任务，重新置为 `WAITING` 或进入失败重试。
-- 增加 RabbitMQ publisher confirm：
+- 增加 RocketMQ 发送结果校验和失败补偿：
   - 解决数据库事务已提交但 MQ 消息发送失败的问题。
   - 可先做 confirm 日志和补偿扫描，后续再考虑 outbox 表。
 - 增加 MinIO 清理：
@@ -69,15 +69,15 @@
 - 更可靠的 `TranscodeTaskService`
 - 原子抢占方法，例如 `tryClaimTask(...)`
 - 重试和超时恢复定时任务
-- RabbitMQ confirm 配置
+- RocketMQ producer/consumer 配置
 - MinIO `deleteObject(...)`、`deletePrefix(...)`
 - 更新后的 `docs/sql/schema.sql`
 
 ### 面试讲解点
 
-- RabbitMQ 可能重复投递，业务幂等不能只依赖 MQ。
+- RocketMQ 可能重复投递，业务幂等不能只依赖 MQ。
 - 真正的“只处理一次”靠数据库任务表的原子状态更新实现。
-- `afterCommit` 解决事务未提交先发消息的问题，publisher confirm 解决 MQ 发送失败的问题。
+- `afterCommit` 解决事务未提交先发消息的问题，RocketMQ send result 和补偿扫描解决 MQ 发送失败的问题。
 - 任务表是异步任务的事实来源，MQ 只是通知。
 - 对象存储和 MySQL 不在同一个事务里，所以需要补偿清理。
 
@@ -178,7 +178,7 @@
 - ZSet
 - String / Hash
 - 定时任务
-- RabbitMQ 可选
+- RocketMQ 可选
 
 ### 重点任务
 
@@ -311,7 +311,7 @@
 
 - ElasticSearch 或 OpenSearch
 - MySQL
-- RabbitMQ 可选
+- RocketMQ 可选
 
 ### 重点任务
 
@@ -441,4 +441,3 @@
 - 当前核心链路已经跑通，下一步最能提升项目深度的是可靠性。
 - 视频元数据增强能明显提升产品完整度。
 - 互动、热门榜、弹幕能让项目更像真实视频平台。
-
