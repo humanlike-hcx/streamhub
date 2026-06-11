@@ -34,6 +34,12 @@ public class VideoUploadService {
 	@Transactional
 	public VideoResponse upload(Long userId, String title, String description, MultipartFile file) {
 		StoredObject storedObject = minioStorageService.uploadOriginalVideo(userId, file);
+		return createVideoAfterOriginalStored(userId, title, description, storedObject);
+	}
+
+	@Transactional
+	public VideoResponse createVideoAfterOriginalStored(Long userId, String title, String description,
+			StoredObject storedObject) {
 		Video video = videoService.createWaitingVideo(
 				userId,
 				title,

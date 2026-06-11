@@ -43,6 +43,23 @@ CREATE TABLE IF NOT EXISTS videos (
     KEY idx_videos_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS uploaded_files (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    file_md5 CHAR(32) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    content_type VARCHAR(128) DEFAULT NULL,
+    bucket_name VARCHAR(128) NOT NULL,
+    object_key VARCHAR(512) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'COMPLETED',
+    created_by BIGINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_uploaded_files_file_md5 (file_md5),
+    KEY idx_uploaded_files_created_by (created_by),
+    KEY idx_uploaded_files_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS transcode_tasks (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     video_id BIGINT NOT NULL,

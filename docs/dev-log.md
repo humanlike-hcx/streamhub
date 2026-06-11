@@ -1567,3 +1567,111 @@ scripts/verify-danmaku-websocket.ps1 -VideoId 11
   - Redis 发送频率限制。
   - 弹幕内容审核。
   - 多实例部署时使用 Redis Pub/Sub 或 MQ 做跨节点广播。
+
+## 2026-06-11 分片上传、断点续传和 MD5 秒传
+
+### 本次目标
+
+在不破坏原有 `POST /api/videos/upload` 普通上传接口的前提下，新增大文件上传入口：
+
+- 基于完整文件 MD5 判断是否可以秒传。
+- 使用 Redis 记录每个 `uploadId` 已经上传的分片。
+- 使用 Redisson 按 `fileMd5` 加分布式锁，避免多个请求重复合并同一个文件。
+- 分片合并完成后复用现有视频上传后的入库、转码任务创建和 RabbitMQ 异步转码链路。
+
+### 新增接口
+
+- `POST /api/videos/multipart/init`
+  - 初始化分片上传。
+  - 如果 `fileMd5` 已经存在于 `uploaded_files`，直接创建视频记录和转码任务，返回 `instantUploaded=true`。
+  - 如果不存在，返回新的 `uploadId`。
+
+- `POST /api/videos/multipart/chunk`
+  - 上传单个分片。
+  - 参数：`uploadId`、`chunkIndex`、`file`。
+  - 分片对象临时保存到 MinIO：`multipart/{uploadId}/{chunkIndex}.part`。
+  - 上传成功后写入 Redis Set。
+
+- `GET /api/videos/multipart/{uploadId}`
+  - 查询断点续传进度。
+  - 返回已经上传的分片下标集合。
+
+- `POST /api/videos/multipart/complete`
+  - 校验分片是否全部上传。
+  - 使用 Redisson 获取 `streamhub:upload:merge:{fileMd5}` 锁。
+  - 下载 MinIO 临时分片到本地临时文件并按顺序合并。
+  - 重新计算合并后文件 MD5，和前端传入的 `fileMd5` 对比。
+  - 上传完整原始视频到 MinIO。
+  - 写入 `uploaded_files`。
+  - 调用 `VideoUploadService#createVideoAfterOriginalStored(...)` 复用原有转码链路。
+
+### 新增 Redis Key
+
+```text
+streamhub:upload:{uploadId}:meta
+```
+
+Hash，保存上传任务元信息：
+
+- `userId`
+- `fileMd5`
+- `fileName`
+- `fileSize`
+- `chunkSize`
+- `totalChunks`
+- `contentType`
+
+```text
+streamhub:upload:{uploadId}:chunks
+```
+
+Set，保存已经上传成功的分片下标。
+
+```text
+streamhub:upload:merge:{fileMd5}
+```
+
+Redisson 分布式锁，防止重复合并同一个完整文件。
+
+### 新增表
+
+新增 `uploaded_files`：
+
+- `file_md5` 唯一索引，用于秒传判断。
+- `object_key` 保存完整原始文件在 MinIO 的地址。
+- `status` 当前只使用 `COMPLETED`。
+
+这张表表达的是“物理文件是否已经存在”，而 `videos` 表表达的是“用户创建的视频业务记录”。两者分开后，同一个原始文件可以被多个视频记录复用。
+
+### 代码思想
+
+- 秒传不是跳过业务流程，而是跳过重复上传文件。
+- 只要 `fileMd5` 命中 `uploaded_files`，后端就可以复用已有 `objectKey` 创建新的视频记录和转码任务。
+- Redis 只保存临时上传进度，不作为最终业务事实。
+- MySQL 的 `uploaded_files` 才是秒传判断的长期依据。
+- Redisson 锁只锁 `fileMd5` 维度，避免同一个文件重复合并，不影响不同文件并发上传。
+- 分片上传完成后没有复制转码逻辑，而是抽取 `VideoUploadService#createVideoAfterOriginalStored(...)`，普通上传和分片上传共用同一套后续链路。
+
+### 当前边界
+
+- 当前使用“下载分片到本地再合并”的方式，逻辑更直观。
+- 后续可以优化为 MinIO 服务端 compose，减少后端磁盘和网络 IO。
+- 当前没有做上传任务持久化，Redis 过期后需要重新初始化上传。
+- 当前没有做分片 MD5 校验，只在最终合并后校验完整文件 MD5。
+
+### 本次验证
+
+- 已执行 `.\mvnw.cmd test`。
+- 已同步本地 MySQL `uploaded_files` 表。
+- 已新增并执行：
+
+```powershell
+scripts/verify-multipart-upload.ps1
+```
+
+- 验证结果：
+  - 初始化分片上传返回 `uploadId`。
+  - 两个分片上传成功。
+  - 查询进度返回 `[0, 1]`。
+  - 完成上传后创建视频记录。
+  - 使用同一个 `fileMd5` 再次初始化，返回 `instantUploaded=true`，说明秒传命中。

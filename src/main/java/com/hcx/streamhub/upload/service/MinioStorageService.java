@@ -1,6 +1,7 @@
 package com.hcx.streamhub.upload.service;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 
 @Service
 public class MinioStorageService {
@@ -61,6 +63,82 @@ public class MinioStorageService {
 		}
 		catch (Exception exception) {
 			throw new BusinessException(ErrorCode.VIDEO_UPLOAD_FAILED, "failed to upload video to MinIO");
+		}
+	}
+
+	public StoredObject uploadOriginalVideo(Long userId, String originalFilename, Path file, String contentType) {
+		String objectKey = buildOriginalVideoObjectKey(userId, originalFilename);
+		try {
+			ensureBucketExists();
+			try (InputStream inputStream = Files.newInputStream(file)) {
+				minioClient.putObject(PutObjectArgs.builder()
+						.bucket(minioProperties.getBucketName())
+						.object(objectKey)
+						.stream(inputStream, Files.size(file), -1L)
+						.contentType(StringUtils.hasText(contentType) ? contentType : "application/octet-stream")
+						.build());
+			}
+			return new StoredObject(objectKey, Files.size(file), contentType);
+		}
+		catch (Exception exception) {
+			throw new BusinessException(ErrorCode.VIDEO_UPLOAD_FAILED, "failed to upload merged video to MinIO");
+		}
+	}
+
+	public void uploadMultipartChunk(String uploadId, Integer chunkIndex, MultipartFile file) {
+		if (file == null || file.isEmpty()) {
+			throw new BusinessException(ErrorCode.VIDEO_FILE_EMPTY);
+		}
+		try {
+			ensureBucketExists();
+			try (InputStream inputStream = file.getInputStream()) {
+				minioClient.putObject(PutObjectArgs.builder()
+						.bucket(minioProperties.getBucketName())
+						.object(buildChunkObjectKey(uploadId, chunkIndex))
+						.stream(inputStream, file.getSize(), -1L)
+						.contentType("application/octet-stream")
+						.build());
+			}
+		}
+		catch (BusinessException exception) {
+			throw exception;
+		}
+		catch (Exception exception) {
+			throw new BusinessException(ErrorCode.VIDEO_UPLOAD_FAILED, "failed to upload video chunk to MinIO");
+		}
+	}
+
+	public Path mergeChunksToTempFile(String uploadId, int totalChunks) {
+		try {
+			Path tempFile = Files.createTempFile("streamhub-upload-" + uploadId + "-", ".video");
+			try (OutputStream outputStream = Files.newOutputStream(tempFile)) {
+				for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+					try (InputStream inputStream = minioClient.getObject(GetObjectArgs.builder()
+							.bucket(minioProperties.getBucketName())
+							.object(buildChunkObjectKey(uploadId, chunkIndex))
+							.build())) {
+						inputStream.transferTo(outputStream);
+					}
+				}
+			}
+			return tempFile;
+		}
+		catch (Exception exception) {
+			throw new BusinessException(ErrorCode.VIDEO_UPLOAD_FAILED, "failed to merge video chunks");
+		}
+	}
+
+	public void deleteMultipartChunks(String uploadId, int totalChunks) {
+		for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+			try {
+				minioClient.removeObject(RemoveObjectArgs.builder()
+						.bucket(minioProperties.getBucketName())
+						.object(buildChunkObjectKey(uploadId, chunkIndex))
+						.build());
+			}
+			catch (Exception ignored) {
+				// Temporary chunk cleanup is best-effort. Failed cleanup should not break upload completion.
+			}
 		}
 	}
 
@@ -161,6 +239,10 @@ public class MinioStorageService {
 		String datePath = LocalDate.now().format(DATE_PATH_FORMATTER);
 		String extension = getExtension(originalFilename);
 		return "original/%d/%s/%s.%s".formatted(userId, datePath, UUID.randomUUID(), extension);
+	}
+
+	private String buildChunkObjectKey(String uploadId, Integer chunkIndex) {
+		return "multipart/%s/%d.part".formatted(uploadId, chunkIndex);
 	}
 
 	private String resolveContentType(MultipartFile file) {
