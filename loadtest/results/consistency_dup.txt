@@ -1,0 +1,6 @@
+injected=60000 unique=20000 dup=3 failed=0 seconds=1.44 rate=41809/s
+run=1 expected=20000 rows 20000 distinct 20000 stat 20000
+persistMessages_delta 60000 persistInserted_delta 20000 persistFailures_delta 0
+injected=60000 unique=20000 dup=3 failed=0 seconds=1.21 rate=49631/s
+run=2 expected=20000 rows 20000 distinct 20000 stat 20000
+persistMessages_delta 60000 persistInserted_delta 20000 persistFailures_delta 0

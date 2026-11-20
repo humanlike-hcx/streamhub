@@ -1,0 +1,16 @@
+# 每次 push / PR 自动跑单元测试。测试不依赖任何中间件，所以不需要起 MySQL/Redis。
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: ./mvnw -B test

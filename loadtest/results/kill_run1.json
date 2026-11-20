@@ -1,0 +1,39 @@
+{
+ "achieved_rate": 405.92,
+ "ack_ids_by_worker": {
+  "0": 9898
+ },
+ "ack_p50_ms": 0.346602,
+ "ack_p99_ms": 3.584351,
+ "acked": 9898,
+ "auth_fail": 0,
+ "client_batch_frames": 39400,
+ "connect_fail": 0,
+ "connect_ok": 200,
+ "connect_secs": 0.021338919,
+ "delivery_ratio_per_node": [
+  0.9951505354617094
+ ],
+ "distinct_ack_ids": 9898,
+ "duration_s": 25,
+ "err_busy": 0,
+ "err_other": 0,
+ "err_rate_limited": 0,
+ "items_per_frame": 50,
+ "label": "kill_run1",
+ "node0_connections": 0,
+ "nodes": 1,
+ "push_max_ms": 66.915771,
+ "push_p50_ms": 27.781187,
+ "push_p99_ms": 53.242618,
+ "read_errors(disconnects)": 450,
+ "receivers": 200,
+ "room": 7,
+ "send_secs": 10.397113173,
+ "senders": 250,
+ "senders_authed": 250,
+ "sent": 10148,
+ "server_metrics_delta": {},
+ "target_rate": 1000,
+ "write_errors": 250
+}

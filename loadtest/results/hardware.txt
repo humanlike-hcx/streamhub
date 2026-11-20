@@ -1,0 +1,13 @@
+date: 2026-11-20 16:06:50 CST
+nproc: 8
+Model name:                              Intel(R) Xeon(R) Processor
+Hypervisor vendor:                       KVM
+               total        used        free      shared  buff/cache   available
+Mem:           16002        5819        7084         185        3603       10182
+6.12.113+
+openjdk version "21.0.13.1" 2026-11-17
+MySQL 8.4.5 (innodb_buffer_pool_size=256M, innodb_flush_log_at_trx_commit=1 默认)
+Redis v=8.0.2
+RocketMQ 5.3.3 单 namesrv+单 broker，ASYNC_FLUSH，topic danmaku 8 队列，maxTransferCountOnMessageInMemory=1024
+应用 JVM: -Xms768m -Xmx768m G1；Netty IO 线程默认 2*核数=16
+压测客户端 Go + gorilla/websocket，与服务端同机

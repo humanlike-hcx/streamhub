@@ -1,0 +1,43 @@
+# 本地开发用的中间件：docker compose up -d
+# 内存都调小了，笔记本也跑得动。数据存在命名卷里，docker compose down -v 会清空。
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: streamhub
+      MYSQL_USER: streamhub
+      MYSQL_PASSWORD: streamhub
+    command: ["--innodb-buffer-pool-size=256M", "--character-set-server=utf8mb4"]
+    ports: ["3306:3306"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports: ["6379:6379"]
+
+  # RocketMQ = NameServer（路由中心，告诉客户端 topic 在哪个 broker）+ Broker（真正存消息）
+  namesrv:
+    image: apache/rocketmq:5.3.1
+    command: sh mqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+    ports: ["9876:9876"]
+
+  broker:
+    image: apache/rocketmq:5.3.1
+    command: sh mqbroker -c /home/rocketmq/broker.conf
+    depends_on: [namesrv]
+    environment:
+      NAMESRV_ADDR: namesrv:9876
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+    ports: ["10909:10909", "10911:10911", "10912:10912"]
+    volumes: ["./deploy/broker.conf:/home/rocketmq/broker.conf:ro"]
+
+volumes:
+  mysql-data:

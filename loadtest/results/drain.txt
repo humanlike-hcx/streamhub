@@ -1,0 +1,6 @@
+injected=500000 unique=500000 dup=1 failed=0 seconds=4.22 rate=118542/s
+run=1 backlog=500000 drain_seconds(first_row->all)=4.28 rows_per_sec=116806 since_java_start=10.11s avg_batch=199.7 persistFailures=0 db_ms_per_batch=6.3
+stat=500000 distinct=500000
+injected=500000 unique=500000 dup=1 failed=0 seconds=4.37 rate=114313/s
+run=2 backlog=500000 drain_seconds(first_row->all)=4.69 rows_per_sec=106700 since_java_start=10.52s avg_batch=199.7 persistFailures=0 db_ms_per_batch=6.5
+stat=500000 distinct=500000

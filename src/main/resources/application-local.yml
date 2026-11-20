@@ -1,0 +1,7 @@
+# local 配置：中间件是本机直接安装的（没有 Docker 时用），并打开 /dev 测试接口。
+# 启动：./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/streamhub_local?serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false}
+streamhub:
+  dev-endpoints: ${DEV_ENDPOINTS:true}

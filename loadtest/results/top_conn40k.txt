@@ -1,0 +1,8 @@
+# 40k 连接 / 200 条/s 测量期间每 5 秒 top 采样（2026-11-20 16:5x UTC+8，diag2_n40000）
+# 整机 idle 在测量期间为 0%~3%：机器被打满
+sample1  idle 0.0%  ltclient 691.7%  server-java 25%   (建连阶段)
+sample2  idle 0.0%  ltclient 345.5%  server-java 345.5%
+sample3  idle 0.0%  ltclient 318.2%  server-java 200.0%  mysqld 18%
+sample4  idle 0.0%  ltclient 490.9%  server-java 172.7%  mysqld 27%
+sample5  idle 0.0%  ltclient 470.0%  server-java 250.0%
+结论：40k 时压测客户端（要读 ~30 万帧/秒）比服务端更吃 CPU，8 核被两者分光，延迟数字受机器上限约束，不能单独归因于服务端。

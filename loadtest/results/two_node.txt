@@ -1,0 +1,10 @@
+label=two_node_run1 nodes=2 receivers=2000 senders=250 target_rate=1000 connect_ok=2000 connect_fail=0 sent=20250 achieved_rate=1012.5 acked=20250 err_busy=0 err_rate_limited=0 read_errors(disconnects)=0 delivery_ratio_per_node=[1, 1] push_p50_ms=39.62 push_p99_ms=377.57 push_max_ms=1090.12 ack_p50_ms=0.82 ack_p99_ms=353.71 items_per_frame=50 server_cpu_cores=2.29 channelWrites=911250 slowSkipped=0 persistInserted=20250
+{'acked': 20250, 'distinct_ack_ids': 20250, 'ack_ids_by_worker': {'0': 10125, '2': 10125}, 'delivery_ratio_per_node': [1, 1]}
+db_rows=20250 db_distinct=20250 stat=20250 acked_missing_in_db=0
+node-a workerId 0 received 10125 broadcastReceived 20250 persistInserted 10131
+node-b workerId 2 received 10125 broadcastReceived 20250 persistInserted 10119
+label=two_node_run2 nodes=2 receivers=2000 senders=250 target_rate=1000 connect_ok=2000 connect_fail=0 sent=20250 achieved_rate=1012.5 acked=20250 err_busy=0 err_rate_limited=0 read_errors(disconnects)=0 delivery_ratio_per_node=[1, 1] push_p50_ms=35.78 push_p99_ms=70.5 push_max_ms=100.1 ack_p50_ms=0.44 ack_p99_ms=23.47 items_per_frame=50 server_cpu_cores=1.33 channelWrites=911250 slowSkipped=0 persistInserted=20250
+{'acked': 20250, 'distinct_ack_ids': 20250, 'ack_ids_by_worker': {'0': 10125, '2': 10125}, 'delivery_ratio_per_node': [1, 1]}
+db_rows=20250 db_distinct=20250 stat=20250 acked_missing_in_db=0
+node-a workerId 0 received 20250 broadcastReceived 40500 persistInserted 20254
+node-b workerId 2 received 20250 broadcastReceived 40500 persistInserted 20246

@@ -1,0 +1,15 @@
+# 构建产物
+target/
+!.mvn/wrapper/maven-wrapper.properties
+# IDE
+.idea/
+*.iml
+.vscode/
+# macOS
+.DS_Store
+# 本地私有配置/日志
+*.log
+.env
+loadtest/client/ltclient
+loadtest/tools/cp.txt
+loadtest/results/*.acks
